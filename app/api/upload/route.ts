@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractText } from "unpdf";
 
 export const runtime = "nodejs";
 
@@ -29,20 +30,23 @@ export async function POST(req: NextRequest) {
     let text = "";
 
     if (file.type === "application/pdf") {
-      const pdfParseModule = require("pdf-parse");
-      const pdfParse = pdfParseModule.default || pdfParseModule;
-      const data = await pdfParse(buffer);
-      text = data.text;
+      // ✅ unpdf handles malformed/bad XRef PDFs gracefully
+      const { text: pages } = await extractText(new Uint8Array(buffer), { mergePages: true });
+      text = Array.isArray(pages) ? pages.join("\n") : pages;
     } else {
       const mammoth = require("mammoth");
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
     }
 
+    if (!text || text.trim() === "") {
+      return NextResponse.json({ error: "Could not extract text from file. Try a different file." }, { status: 400 });
+    }
+
     return NextResponse.json({ success: true, text });
 
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process file. Please try again." }, { status: 500 });
   }
 }
