@@ -1,4 +1,7 @@
 export function buildPrompt(resumeText: string, jobDescription: string): string {
+  const truncatedResume = resumeText.slice(0, 8000);
+  const truncatedJD = (jobDescription || "").slice(0, 2000);
+
   return `
 You are an expert ATS resume analyzer and hiring reviewer.
 Evaluate the resume strictly against the provided job description.
@@ -27,9 +30,9 @@ Rules:
 - If job description is empty, treat it as "General professional role" and state assumptions implicitly in critique.
 
 Job Description:
-${jobDescription || "General professional role"}
+${truncatedJD || "General professional role"}
 
 Resume Text:
-${resumeText}
+${truncatedResume}
   `.trim();
 }
